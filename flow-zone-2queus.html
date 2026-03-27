@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Airport Queue Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e1a;
+            --panel: #111827;
+            --card: #1a2235;
+            --border: #1e2d45;
+            --accent: #3b82f6;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+            --cyan: #06b6d4;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --font: 'Inter', sans-serif
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column
+        }
+
+        /* Topbar */
+        .top {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 0 16px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0
+        }
+
+        .top h1 {
+            font-size: .9rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 7px
+        }
+
+        .npu-badge {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            border-radius: 4px;
+            padding: 2px 7px;
+            font-size: .6rem;
+            font-weight: 700
+        }
+
+        .sys {
+            display: flex;
+            gap: 12px;
+            font-size: .68rem;
+            color: var(--muted);
+            align-items: center
+        }
+
+        .pulse {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            animation: p 2s infinite;
+            display: inline-block
+        }
+
+        @keyframes p {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: .3
+            }
+        }
+
+        /* Layout */
+        .body {
+            display: flex;
+            flex: 1;
+            overflow: hidden
+        }
+
+        .sidebar {
+            width: 268px;
+            background: var(--panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            flex-shrink: 0
+        }
+
+        .sb-add {
+            padding: 10px 11px;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0
+        }
+
+        .sb-add h3 {
+            font-size: .6rem;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--muted);
+            margin-bottom: 7px;
+            font-weight: 600
+        }
+
+        .sb-cams {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px
+        }
+
+        /* Form */
+        .fr {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-bottom: 5px
+        }
+
+        .fr label {
+            font-size: .62rem;
+            color: var(--muted);
+            font-weight: 500
+        }
+
+        .fr input,
+        .fr select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 5px;
+            padding: 5px 7px;
+            font-size: .72rem;
+            font-family: var(--font);
+            width: 100%
+        }
+
+        .fr input:focus,
+        .fr select:focus {
+            outline: none;
+            border-color: var(--accent)
+        }
+
+        .thr {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px
+        }
+
+        .thr .fr {
+            flex: 1;
+            margin: 0
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: .72rem;
+            font-family: var(--font);
+            cursor: pointer;
+            font-weight: 600;
+            transition: background .15s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px
+        }
+
+        .btn:hover {
+            background: #2563eb
+        }
+
+        .btn.g {
+            background: #064e3b;
+            color: #6ee7b7;
+            border: 1px solid #10b98133
+        }
+
+        .btn.g:hover {
+            background: var(--green);
+            color: #fff
+        }
+
+        .btn.r {
+            background: #7f1d1d;
+            color: #fca5a5;
+            border: 1px solid #ef444433
+        }
+
+        .btn.r:hover {
+            background: var(--red)
+        }
+
+        .btn.sec {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text)
+        }
+
+        .btn.sec:hover {
+            border-color: var(--accent)
+        }
+
+        .btn.sm {
+            padding: 3px 9px;
+            font-size: .65rem;
+            width: auto
+        }
+
+        /* Cam cards */
+        .cc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 9px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            transition: border-color .15s;
+            position: relative
+        }
+
+        .cc:hover {
+            border-color: var(--accent)88
+        }
+
+        .cc.on {
+            border-left: 3px solid var(--green)
+        }
+
+        .cc.sel {
+            border-color: var(--accent)
+        }
+
+        .cc-name {
+            font-weight: 600;
+            font-size: .78rem;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .cc-meta {
+            font-size: .62rem;
+            color: var(--muted);
+            margin-top: 2px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            align-items: center
+        }
+
+        .cc-warn {
+            font-size: .62rem;
+            color: var(--amber);
+            margin-top: 3px
+        }
+
+        .cc-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3px;
+            margin-top: 5px
+        }
+
+        .sp {
+            background: var(--bg);
+            border-radius: 4px;
+            padding: 2px 6px
+        }
+
+        .sp .sl {
+            color: var(--muted);
+            font-size: .56rem;
+            display: block
+        }
+
+        .sp .sv {
+            font-weight: 600;
+            font-size: .72rem
+        }
+
+        .xb {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 11px;
+            padding: 2px 4px;
+            border-radius: 3px
+        }
+
+        .xb:hover {
+            color: var(--red)
+        }
+
+        .nocam {
+            text-align: center;
+            color: var(--muted);
+            font-size: .72rem;
+            padding: 20px 10px;
+            line-height: 2
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0
+        }
+
+        .tab {
+            padding: 7px 15px;
+            font-size: .72rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--muted);
+            transition: color .15s;
+            user-select: none
+        }
+
+        .tab.on {
+            color: var(--text);
+            border-bottom-color: var(--accent)
+        }
+
+        .view {
+            display: none;
+            flex: 1;
+            overflow: auto
+        }
+
+        .view.on {
+            display: flex;
+            flex-direction: column
+        }
+
+        /* Live */
+        #vw-live {
+            padding: 11px;
+            gap: 9px
+        }
+
+        .vg {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 9px
+        }
+
+        .vc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            overflow: hidden
+        }
+
+        .vc-top {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 9px;
+            background: #0006
+        }
+
+        .vc-top .vn {
+            font-size: .74rem;
+            font-weight: 600;
+            flex: 1
+        }
+
+        .vc img {
+            width: 100%;
+            display: block;
+            aspect-ratio: 16/9;
+            object-fit: contain;
+            background: #000
+        }
+
+        .vc-bot {
+            padding: 5px 9px;
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap
+        }
+
+        .bs {
+            padding: 2px 7px;
+            border-radius: 10px;
+            font-size: .59rem;
+            font-weight: 600
+        }
+
+        .bq {
+            background: #0c2a3a;
+            color: #38bdf8;
+            border: 1px solid #0ea5e922
+        }
+
+        .bs2 {
+            background: #082a1a;
+            color: #34d399;
+            border: 1px solid #10b98122
+        }
+
+        .bc {
+            background: #1a0e2e;
+            color: #c4b5fd;
+            border: 1px solid #8b5cf622
+        }
+
+        /* Zone Setup */
+        #vw-zones {
+            padding: 0;
+            overflow: hidden
+        }
+
+        .zsteps {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 5px 11px;
+            font-size: .65rem;
+            color: var(--muted);
+            flex-shrink: 0;
+            line-height: 1.9
+        }
+
+        .ztool {
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            padding: 5px 9px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            align-items: center;
+            flex-shrink: 0
+        }
+
+        .ztool select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: .7rem;
+            font-family: var(--font)
+        }
+
+        .zb {
+            padding: 4px 10px;
+            border-radius: 5px;
+            border: 2px solid;
+            cursor: pointer;
+            font-size: .65rem;
+            font-weight: 600;
+            font-family: var(--font);
+            background: transparent;
+            transition: all .15s;
+            white-space: nowrap
+        }
+
+        .zb.q {
+            border-color: #f59e0b55;
+            color: #f59e0b
+        }
+
+        .zb.q.on {
+            background: #f59e0b1a;
+            border-color: #f59e0b
+        }
+
+        .zb.s {
+            border-color: #10b98155;
+            color: #10b981
+        }
+
+        .zb.s.on {
+            background: #10b9811a;
+            border-color: #10b981
+        }
+
+        .zb.cl {
+            border-color: #06b6d455;
+            color: #06b6d4
+        }
+
+        .zb.cl.on {
+            background: #06b6d41a;
+            border-color: #06b6d4
+        }
+
+        .zb.el {
+            border-color: #a78bfa55;
+            color: #a78bfa
+        }
+
+        .zb.el.on {
+            background: #a78bfa1a;
+            border-color: #a78bfa
+        }
+
+        .zstatus {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 4px 11px;
+            display: flex;
+            gap: 14px;
+            flex-shrink: 0
+        }
+
+        .zsi {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .64rem;
+            color: var(--muted)
+        }
+
+        .zsd {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--muted)
+        }
+
+        .zsd.ok {
+            background: var(--green)
+        }
+
+        .cwrap {
+            position: relative;
+            background: #0a0a0a;
+            flex: 1;
+            min-height: 0;
+            overflow: hidden
+        }
+
+        #zbg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none
+        }
+
+        #zc {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair
+        }
+
+        .hint {
+            position: absolute;
+            bottom: 9px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, .88);
+            color: #e2e8f0;
+            font-size: .66rem;
+            padding: 5px 14px;
+            border-radius: 14px;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 5;
+            border: 1px solid var(--border)
+        }
+
+        .abar {
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            padding: 7px 11px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            flex-shrink: 0
+        }
+
+        .abar .fr {
+            margin: 0;
+            flex: 1;
+            min-width: 90px
+        }
+
+        /* Metrics */
+        #vw-metrics {
+            padding: 11px;
+            gap: 9px
+        }
+
+        .mrow {
+            display: flex;
+            gap: 7px;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: wrap
+        }
+
+        .mrow select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: .7rem;
+            font-family: var(--font)
+        }
+
+        .mg3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 9px
+        }
+
+        .mg4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 9px
+        }
+
+        .mg12 {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 9px
+        }
+
+        .mc {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 11px 13px
+        }
+
+        .mc .lbl {
+            font-size: .62rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .mc .val {
+            font-size: 1.65rem;
+            font-weight: 700;
+            margin-top: 3px;
+            line-height: 1
+        }
+
+        .mc .sub {
+            font-size: .62rem;
+            color: var(--muted);
+            margin-top: 2px
+        }
+
+        .mt {
+            font-size: .57rem;
+            padding: 1px 5px;
+            border-radius: 3px;
+            font-weight: 700
+        }
+
+        .mt.ll {
+            background: #0c2a3a;
+            color: #38bdf8
+        }
+
+        .mt.est {
+            background: #1c1200;
+            color: #fcd34d
+        }
+
+        .mt.no {
+            background: #222;
+            color: var(--muted)
+        }
+
+        .ca {
+            color: var(--amber)
+        }
+
+        .cg {
+            color: var(--green)
+        }
+
+        .cb2 {
+            color: var(--accent)
+        }
+
+        .cp {
+            color: var(--purple)
+        }
+
+        .cc2 {
+            color: var(--cyan)
+        }
+
+        .chart {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 11px 13px
+        }
+
+        .chart h3 {
+            font-size: .7rem;
+            color: var(--muted);
+            margin-bottom: 6px;
+            font-weight: 500
+        }
+
+        .leg {
+            display: flex;
+            gap: 11px;
+            margin-bottom: 7px;
+            flex-wrap: wrap
+        }
+
+        .leg span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: .62rem;
+            color: var(--muted)
+        }
+
+        .dsq {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px
+        }
+
+        #hcv {
+            width: 100%;
+            height: 140px;
+            display: block
+        }
+
+        .ctb {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: .7rem
+        }
+
+        .ctb th {
+            text-align: left;
+            padding: 4px 6px;
+            color: var(--muted);
+            font-weight: 500;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .ctb td {
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--border)33
+        }
+
+        .ctb tr:last-child td {
+            border-bottom: none
+        }
+
+        .bctr {
+            background: #0e4f5c;
+            color: #67e8f9;
+            border: 1px solid #06b6d422;
+            padding: 2px 6px;
+            border-radius: 7px;
+            font-size: .58rem;
+            font-weight: 600
+        }
+
+        .bext {
+            background: #1a0e2e;
+            color: #c4b5fd;
+            border: 1px solid #8b5cf422;
+            padding: 2px 6px;
+            border-radius: 7px;
+            font-size: .58rem;
+            font-weight: 600
+        }
+
+        /* Overview */
+        #vw-ov {
+            padding: 11px;
+            gap: 9px
+        }
+
+        .og {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 9px
+        }
+
+        .os {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 10px 12px
+        }
+
+        .os .ol {
+            font-size: .6rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em
+        }
+
+        .os .ov {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-top: 2px
+        }
+
+        .cbg {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 9px
+        }
+
+        .cb {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            padding: 10px 12px
+        }
+
+        .cb.alrt {
+            border-color: var(--red)77
+        }
+
+        .cb.oc {
+            border-color: var(--amber);
+            box-shadow: 0 0 0 1px var(--amber)33
+        }
+
+        .oc-banner {
+            background: #451a03;
+            color: #fcd34d;
+            border: 1px solid #f59e0b44;
+            border-radius: 5px;
+            font-size: .63rem;
+            font-weight: 600;
+            padding: 3px 8px;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px
+        }
+
+        .cbh {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+            font-size: .78rem;
+            margin-bottom: 7px
+        }
+
+        .cbr {
+            display: flex;
+            justify-content: space-between;
+            font-size: .7rem;
+            padding: 3px 0;
+            border-bottom: 1px solid var(--border)33
+        }
+
+        .cbr:last-child {
+            border-bottom: none
+        }
+
+        .cbr .cl {
+            color: var(--muted)
+        }
+
+        .cbr .cv {
+            font-weight: 600
+        }
+
+        /* Alerts */
+        #vw-alrt {
+            padding: 11px;
+            gap: 9px
+        }
+
+        .al {
+            display: flex;
+            flex-direction: column;
+            gap: 5px
+        }
+
+        .ai {
+            background: var(--card);
+            border-radius: 8px;
+            padding: 8px 10px;
+            border-left: 3px solid var(--amber);
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .ai.cr {
+            border-left-color: var(--red)
+        }
+
+        .ai.ak {
+            opacity: .4;
+            border-left-color: var(--muted)
+        }
+
+        .ai .at {
+            font-size: .62rem;
+            color: var(--muted);
+            white-space: nowrap
+        }
+
+        .ai .am {
+            font-size: .73rem;
+            flex: 1
+        }
+
+        .ai .alv {
+            font-size: .58rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #451a03;
+            color: #fcd34d;
+            white-space: nowrap
+        }
+
+        .ai.cr .alv {
+            background: #7f1d1d;
+            color: #fca5a5
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 16px;
+            right: 16px;
+            background: var(--green);
+            color: #fff;
+            padding: 7px 14px;
+            border-radius: 8px;
+            font-size: .72rem;
+            font-weight: 500;
+            box-shadow: 0 5px 18px #0005;
+            transform: translateY(60px);
+            transition: transform .22s;
+            z-index: 999
+        }
+
+        .toast.sh {
+            transform: translateY(0)
+        }
+
+        .toast.er {
+            background: var(--red)
+        }
+
+        /* misc */
+        .cgreen {
+            color: var(--green)
+        }
+
+        .camber {
+            color: var(--amber)
+        }
+
+        .run-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: .62rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: #064e3b;
+            color: #6ee7b7;
+            border: 1px solid #10b98133
+        }
+    </style>
+</head>
+
+<body>
+    <div class="top">
+        <h1>✈ Airport Queue Management <span class="npu-badge">Intel NPU</span></h1>
+        <div class="sys">
+            <span><span class="pulse"></span> <span id="sy-dev">—</span></span>
+            <span id="sy-inf">—</span>
+            <span id="sy-gpu" style="color:var(--green)"></span>
+            <span id="sy-cams">0 cams</span>
+            <span id="sy-alrt" style="color:var(--amber)"></span>
+        </div>
+    </div>
+    <div class="body">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <div class="sb-add">
+                <h3>Add Camera Stream</h3>
+                <div class="fr"><label>Name</label><input id="in-name" placeholder="Gate A Counter"></div>
+                <div class="fr"><label>Source (RTSP or file path)</label><input id="in-src"
+                        placeholder="rtsp://... or /path/video.mp4"></div>
+                <div class="fr"><label>Mode</label>
+                    <select id="in-mode">
+                        <option value="live">Live (RTSP)</option>
+                        <option value="recording">Recording (loops)</option>
+                    </select>
+                    <span id="in-hint" style="font-size:.6rem;margin-top:1px;display:block;min-height:10px"></span>
+                </div>
+                <div class="thr">
+                    <div class="fr"><label>Q alert</label><input id="in-at" type="number" value="10" min="1"></div>
+                    <div class="fr"><label>Wait (s)</label><input id="in-wt" type="number" value="300" min="10"></div>
+                    <div class="fr"><label>FPS</label><input id="in-fps" type="number" value="15" min="1" max="30">
+                    </div>
+                </div>
+                <button class="btn" onclick="addCam()">＋ Add Stream</button>
+            </div>
+            <div
+                style="padding:6px 11px 2px;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);flex-shrink:0">
+                Active Streams</div>
+            <div class="sb-cams" id="cam-list">
+                <p class="nocam">No streams yet.<br>Add a camera above,<br>then go to<br>Zone + Line Setup tab.</p>
+            </div>
+        </div>
+        <!-- MAIN -->
+        <div class="main">
+            <div class="tabs">
+                <div class="tab on" onclick="gTab('live')">Live Feeds</div>
+                <div class="tab" onclick="gTab('zones')">Zone + Line Setup</div>
+                <div class="tab" onclick="gTab('metrics')">Metrics</div>
+                <div class="tab" onclick="gTab('ov')">Overview</div>
+                <div class="tab" onclick="gTab('alrt')">Alerts</div>
+            </div>
+
+            <!-- LIVE -->
+            <div class="view on" id="vw-live">
+                <div class="vg" id="vgrid">
+                    <p style="color:var(--muted);font-size:.78rem;padding:14px">Add a camera to begin.</p>
+                </div>
+            </div>
+
+            <!-- ZONE SETUP -->
+            <div class="view" id="vw-zones">
+                <div class="zsteps">
+                    <b style="color:var(--text)">Workflow:</b>
+                    <b style="color:#f59e0b"> 1</b> Pick camera →
+                    <b style="color:#f59e0b"> 2</b> ▦ Queue Zone → click points → ✔ Save Zone →
+                    <b style="color:#10b981"> 3</b> ▦ Service Zone → click points → ✔ Save Zone <span
+                        style="color:var(--muted)">(optional)</span> →
+                    <b style="color:#06b6d4"> 4</b> — Counter Line → click 2pts (auto-saves) →
+                    <b style="color:#a78bfa"> 5</b> — Exit Line → click 2pts (auto-saves) →
+                    <b style="color:var(--green)"> 6</b> ▶ Apply &amp; Start Analytics
+                    <span style="color:var(--muted);margin-left:8px">— Queue Zone alone is enough to start.</span>
+                </div>
+                <div class="ztool">
+                    <span style="font-size:.7rem;color:var(--muted)">Camera:</span>
+                    <select id="zsel" onchange="onZCam()">
+                        <option value="">— select camera —</option>
+                    </select>
+                    <button class="zb q" id="zb-q" onclick="setMode('zone_queue')">▦ Queue Zone</button>
+                    <button class="zb s" id="zb-s" onclick="setMode('zone_service')">▦ Service Zone</button>
+                    <button class="zb cl" id="zb-cl" onclick="setMode('counter_line')">— Counter Line</button>
+                    <button class="zb el" id="zb-el" onclick="setMode('exit_line')">— Exit Line</button>
+                    <button class="btn sm g" onclick="saveShape()">✔ Save Zone</button>
+                    <button class="btn sm sec" onclick="clearAll()">✕ Clear All</button>
+                </div>
+                <div class="zstatus">
+                    <div class="zsi"><span class="zsd" id="zd-q"></span> Queue Zone</div>
+                    <div class="zsi"><span class="zsd" id="zd-s"></span> Service Zone</div>
+                    <div class="zsi"><span class="zsd" id="zd-cl"></span> Counter Line</div>
+                    <div class="zsi"><span class="zsd" id="zd-el"></span> Exit Line</div>
+                    <div id="z-running" style="margin-left:auto;display:none"><span class="run-badge">⬤ Analytics
+                            Running</span>
+                    </div>
+                </div>
+                <div class="cwrap" id="cwrap">
+                    <img id="zbg" src="" alt="">
+                    <canvas id="zc"></canvas>
+                    <div class="hint" id="hint">← Select a camera from the dropdown above to begin</div>
+                </div>
+                <div class="abar">
+                    <div class="fr"><label>Queue alert (persons)</label><input id="z-at" type="number" value="10"
+                            min="1" style="width:70px"></div>
+                    <div class="fr"><label>Wait alert (seconds)</label><input id="z-wt" type="number" value="300"
+                            min="10" style="width:70px"></div>
+                    <button class="btn g" style="width:auto;padding:7px 18px;font-size:.78rem" onclick="applyZones()">▶
+                        Apply
+                        &amp; Start Analytics</button>
+                    <button class="btn sm r" onclick="resetCam()">⟳ Reset</button>
+                </div>
+            </div>
+
+            <!-- METRICS -->
+            <div class="view" id="vw-metrics">
+                <div class="mrow">
+                    <span style="font-size:.7rem;color:var(--muted)">Camera:</span>
+                    <select id="msel" onchange="refMetrics()">
+                        <option value="">— select —</option>
+                    </select>
+                    <button class="btn sm sec" style="margin-left:auto" onclick="exportCSV()">⬇ CSV</button>
+                </div>
+                <div class="mg3">
+                    <div class="mc">
+                        <div class="lbl">Queue Length</div>
+                        <div class="val ca" id="m-ql">—</div>
+                        <div class="sub">persons in queue zone now</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lbl">Avg Waiting Time <span class="mt no" id="m-wm">—</span></div>
+                        <div class="val ca" id="m-wt2">—</div>
+                        <div class="sub" id="m-ws">W = L_queue ÷ λ_counter</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lbl">Avg Processing Time <span class="mt no" id="m-pm">—</span></div>
+                        <div class="val cg" id="m-pt">—</div>
+                        <div class="sub" id="m-ps">W = L_service ÷ λ_exit</div>
+                    </div>
+                </div>
+                <div class="mg4">
+                    <div class="mc">
+                        <div class="lbl">In Queue Zone</div>
+                        <div class="val ca" id="m-zq">—</div>
+                        <div class="sub">L_queue now</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lbl">In Service Zone</div>
+                        <div class="val cg" id="m-zs">—</div>
+                        <div class="sub">L_service now</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lbl">Queue Entries / Exits</div>
+                        <div class="val cc2" id="m-cc">—</div>
+                        <div class="sub">persons entered / left queue zone</div>
+                    </div>
+                    <div class="mc">
+                        <div class="lbl">Service Exits</div>
+                        <div class="val cp" id="m-ec">—</div>
+                        <div class="sub">persons left service zone</div>
+                    </div>
+                </div>
+                <div class="mg4">
+                    <div class="mc">
+                        <div class="lbl">Throughput/hr</div>
+                        <div class="val cp" id="m-tp">—</div>
+                        <div class="sub" id="m-ts">λ_service × 60</div>
+                    </div>
+                    <div class="mc" id="m-oc-card" style="border-color:var(--muted)33">
+                        <div class="lbl">Open Counter Signal</div>
+                        <div class="val" id="m-oc" style="font-size:1rem;margin-top:6px;color:var(--muted)">—</div>
+                        <div class="sub" id="m-oc-sub">wait &gt; threshold AND exits = 0</div>
+                    </div>
+                    <div class="mc" style="grid-column:span 2">
+                        <div class="lbl" style="margin-bottom:6px">How waiting time is calculated</div>
+                        <div style="font-size:.68rem;color:var(--muted);line-height:1.9">
+                            <b style="color:var(--amber)">Avg Wait</b> = L_queue_avg ÷ λ_exits &nbsp;(rolling occupancy
+                            ÷ queue
+                            exits/min) — <b>queue zone only</b><br>
+                            λ_exits = persons who left queue zone per minute (primary signal)<br>
+                            λ_entries = persons who entered queue zone per minute (early proxy before first exit)<br>
+                            <span class="mt ll">L</span> = Little's Law active &nbsp;·&nbsp;
+                            <span class="mt est">~</span> = estimated (history average) &nbsp;·&nbsp;
+                            <span class="mt no">—</span> = no data / queue empty
+                        </div>
+                    </div>
+                </div>
+                <div class="chart">
+                    <h3>Recent zone crossings (Flow/Counting method)</h3>
+                    <table class="ctb">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Event</th>
+                                <th>Method</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clog">
+                            <tr>
+                                <td colspan="3" style="color:var(--muted);padding:9px 6px">No crossings yet — draw
+                                    zones, draw lines
+                                    (optional), click Apply</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="chart">
+                    <h3>History (last 5 min)</h3>
+                    <div class="leg">
+                        <span><span class="dsq" style="background:#f59e0b"></span>Queue Length</span>
+                        <span><span class="dsq" style="background:#3b82f6"></span>Avg Wait (s)</span>
+                        <span><span class="dsq" style="background:#10b981"></span>Avg Proc (s)</span>
+                    </div>
+                    <canvas id="hcv"></canvas>
+                </div>
+            </div>
+
+            <!-- OVERVIEW -->
+            <div class="view" id="vw-ov">
+                <div class="og">
+                    <div class="os">
+                        <div class="ol">Total in Queue</div>
+                        <div class="ov ca" id="ov-q">—</div>
+                    </div>
+                    <div class="os">
+                        <div class="ol">Total Processed</div>
+                        <div class="ov cg" id="ov-p">—</div>
+                    </div>
+                    <div class="os">
+                        <div class="ol">Active Cameras</div>
+                        <div class="ov" id="ov-c">—</div>
+                    </div>
+                </div>
+                <div class="cbg" id="cbg">
+                    <p style="color:var(--muted);font-size:.74rem">No cameras.</p>
+                </div>
+            </div>
+
+            <!-- ALERTS -->
+            <div class="view" id="vw-alrt">
+                <div class="mrow">
+                    <span style="font-size:.7rem;color:var(--muted)">Camera:</span>
+                    <select id="asel" onchange="refAlerts()"
+                        style="background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:4px 8px;font-size:.7rem;font-family:var(--font)">
+                        <option value="">— select —</option>
+                    </select>
+                    <label
+                        style="font-size:.68rem;color:var(--muted);display:flex;align-items:center;gap:4px;cursor:pointer"><input
+                            type="checkbox" id="f-ua" onchange="refAlerts()"> Unacked only</label>
+                </div>
+                <div class="al" id="alist">
+                    <p style="color:var(--muted);font-size:.74rem">No alerts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ── State ────────────────────────────────────────────────────────────────
+        const cameras = {};
+        let drawMode = null, currentPoly = [], zoneCamId = null;
+        const shapes = { zone_queue: [], zone_service: [], counter_line: [], exit_line: [] };
+        const COLORS = { zone_queue: '#f59e0b', zone_service: '#10b981', counter_line: '#06b6d4', exit_line: '#a78bfa' };
+
+        // ── Utils ─────────────────────────────────────────────────────────────────
+        function toast(msg, err = false) {
+            const t = document.getElementById('toast');
+            t.textContent = msg; t.className = 'toast sh' + (err ? ' er' : '');
+            clearTimeout(t._t); t._t = setTimeout(() => t.className = 'toast', 3000);
+        }
+
+        const TABS = ['live', 'zones', 'metrics', 'ov', 'alrt'];
+        function gTab(name) {
+            document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('on', TABS[i] === name));
+            document.querySelectorAll('.view').forEach((v, i) => v.classList.toggle('on', TABS[i] === name));
+            if (name === 'metrics') refMetrics();
+            if (name === 'alrt') refAlerts();
+            if (name === 'ov') refOv();
+        }
+
+        async function api(url, method = 'GET', body = null) {
+            const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : null });
+            if (!r.ok) throw new Error(await r.text());
+            return r.json();
+        }
+
+        function isFile(s) {
+            if (!s) return false;
+            if (/^(rtsp|http|https|rtp):\/\//i.test(s)) return false;
+            if (/^\d+$/.test(s.trim())) return false;
+            return true;
+        }
+
+        // ── Auto-detect source ────────────────────────────────────────────────────
+        document.getElementById('in-src').addEventListener('input', function () {
+            const s = this.value.trim(), h = document.getElementById('in-hint'), m = document.getElementById('in-mode');
+            if (isFile(s)) { m.value = 'recording'; h.textContent = '📁 Local file → Recording mode'; h.style.color = 'var(--green)'; }
+            else if (/^rtsp/i.test(s)) { m.value = 'live'; h.textContent = '📡 RTSP live stream'; h.style.color = 'var(--accent)'; }
+            else h.textContent = '';
+        });
+
+        // ── Add camera ────────────────────────────────────────────────────────────
+        async function addCam() {
+            const name = document.getElementById('in-name').value.trim() || 'Camera';
+            const source = document.getElementById('in-src').value.trim();
+            let mode = document.getElementById('in-mode').value;
+            const at = parseInt(document.getElementById('in-at').value) || 10;
+            const wt = parseFloat(document.getElementById('in-wt').value) || 300;
+            const fps = parseFloat(document.getElementById('in-fps').value) || 15;
+            if (!source) { toast('Enter source URL or file path', true); return; }
+            if (isFile(source)) mode = 'recording';
+            try {
+                const cam = await api('/api/cameras', 'POST', { name, source, mode, alert_threshold: at, wait_time_threshold: wt, inf_fps: fps });
+                cameras[cam.cam_id] = cam;
+                toast('✓ Added: ' + name);
+                addVCard(cam); updateSelects(); renderList();
+                document.getElementById('in-name').value = '';
+                document.getElementById('in-src').value = '';
+                document.getElementById('in-hint').textContent = '';
+                // Auto-open zone setup for this camera
+                document.getElementById('zsel').value = cam.cam_id;
+                onZCam(); gTab('zones');
+            } catch (e) { toast('Error: ' + e.message, true); }
+        }
+
+        async function removeCam(id) {
+            await api('/api/cameras/' + id, 'DELETE');
+            delete cameras[id];
+            document.getElementById('vc-' + id)?.remove();
+            updateSelects(); renderList(); toast('Removed');
+        }
+
+        // ── Sidebar ───────────────────────────────────────────────────────────────
+        function renderList() {
+            const el = document.getElementById('cam-list');
+            const ids = Object.keys(cameras);
+            if (!ids.length) { el.innerHTML = '<p class="nocam">No streams yet.<br>Add a camera above,<br>then go to<br>Zone + Line Setup tab.</p>'; return; }
+            el.innerHTML = ids.map(id => {
+                const c = cameras[id], m = c.metrics || {}, on = c.inference_active;
+                const wm = m.wait_method || 'none';
+                const wtTag = wm === 'littles_law' ? '[L]' : wm === 'estimated' ? '[~]' : wm === 'no_data' ? '[?]' : '';
+                const wtValue = (wm === 'none' || wm === 'no_data' || wm === 'warming_up') ? '—' : (m.avg_waiting_time ?? 0).toFixed(1) + 's';
+                const oc = m.open_counter || false;
+                const pm = m.proc_method || 'none';
+                const ptTag = pm === 'littles_law' ? '[L]' : pm === 'estimated' ? '[~]' : pm === 'no_data' ? '[?]' : '';
+                const ptValue = (pm === 'none' || pm === 'no_data' || pm === 'warming_up' || !pm) ? '—' : (m.avg_processing_time ?? 0).toFixed(1) + 's';
+                return `<div class="cc ${on ? 'on' : ''}" id="cc-${id}" onclick="selCam(${id})">
+      <button class="xb" onclick="event.stopPropagation();removeCam(${id})">✕</button>
+      <div class="cc-name"><span class="pulse" style="${on ? '' : 'background:var(--muted)'}"></span>${c.name}</div>
+      <div class="cc-meta">
+        <span>Cam ${id}</span><span>${c.mode || 'live'}</span>
+        <span>${(c.inf_fps || 0).toFixed(1)}fps</span>
+        <span style="color:${on ? 'var(--green)' : 'var(--muted)'};font-weight:600">${on ? '⬤ ON' : '◎ Idle'}</span>
+        <span>🎬${(c.decode_method || 'cpu').toUpperCase()}</span>
+      </div>
+      ${!on ? `<div class="cc-warn">⚠ Draw Queue Zone → click Apply</div>` : ''}
+      ${oc ? `<div class="cc-warn" style="color:var(--amber)">⚠ Open new counter</div>` : ''}
+      <div class="cc-stats">
+        <div class="sp"><span class="sl">Queue</span><span class="sv ca">${m.queue_length ?? '—'}</span></div>
+        <div class="sp"><span class="sl">Avg Wait ${wtTag}</span><span class="sv ca">${wtValue}</span></div>
+        <div class="sp"><span class="sl">Avg Proc ${ptTag}</span><span class="sv cg">${ptValue}</span></div>
+        <div class="sp"><span class="sl">Tput/h</span><span class="sv cp">${(m.throughput_per_hour ?? 0).toFixed(0)}</span></div>
+      </div>
+    </div>`;
+            }).join('');
+        }
+
+        function addVCard(cam) {
+            const g = document.getElementById('vgrid');
+            g.querySelectorAll('p').forEach(p => p.remove());
+            const d = document.createElement('div');
+            d.className = 'vc'; d.id = 'vc-' + cam.cam_id;
+            d.innerHTML = `<div class="vc-top"><div class="vn">${cam.name}</div>
+    <span style="font-size:.62rem;color:var(--muted)">Cam ${cam.cam_id}</span>
+    <button class="btn sm sec" style="margin-left:6px" onclick="goSetup(${cam.cam_id})">✏ Setup</button></div>
+  <img src="/video_feed/${cam.cam_id}" alt="${cam.name}">
+  <div class="vc-bot" id="vb-${cam.cam_id}">
+    <span class="bs bq">Q: —</span><span class="bs bs2">S: —</span><span class="bs bc">CX: —</span>
+  </div>`;
+            g.appendChild(d);
+        }
+
+        function goSetup(id) { document.getElementById('zsel').value = id; onZCam(); gTab('zones'); }
+        function selCam(id) { document.querySelectorAll('.cc').forEach(c => c.classList.remove('sel')); document.getElementById('cc-' + id)?.classList.add('sel'); }
+
+        function updateSelects() {
+            const ids = Object.keys(cameras);
+            const opts = '<option value="">— select —</option>' + ids.map(id => `<option value="${id}">${cameras[id].name} (Cam ${id})</option>`).join('');
+            ['zsel', 'msel', 'asel'].forEach(id => {
+                const el = document.getElementById(id);
+                const prev = el.value;
+                el.innerHTML = opts;
+                if (prev) el.value = prev;
+            });
+        }
+
+        // ── Canvas zone drawing ───────────────────────────────────────────────────
+        const canvas = document.getElementById('zc');
+        const ctx = canvas.getContext('2d');
+        const zbg = document.getElementById('zbg');
+
+        function syncSize() {
+            const w = document.getElementById('cwrap');
+            if (!w) return;
+            const cw = w.clientWidth, ch = w.clientHeight;
+            if (cw > 0 && ch > 0 && (canvas.width !== cw || canvas.height !== ch)) { canvas.width = cw; canvas.height = ch; redraw(); }
+        }
+        new ResizeObserver(syncSize).observe(document.getElementById('cwrap'));
+        setInterval(() => { if (zoneCamId) redraw(); }, 400);
+
+        // ── Compute rendered image rect inside the container ──────────────────
+        // object-fit:contain scales the video preserving aspect ratio, creating
+        // letterbox bars.  We need the actual rendered video region for mapping
+        // click coordinates to normalised [0..1] video coordinates.
+        function getImageRect() {
+            const img = zbg;
+            const cw = canvas.width, ch = canvas.height;
+            const nw = img.naturalWidth || cw;
+            const nh = img.naturalHeight || ch;
+            const scale = Math.min(cw / nw, ch / nh);
+            const rw = nw * scale, rh = nh * scale;
+            const ox = (cw - rw) / 2, oy = (ch - rh) / 2;
+            return { ox, oy, rw, rh };
+        }
+
+        function onZCam() {
+            const id = parseInt(document.getElementById('zsel').value);
+            if (!id) { zoneCamId = null; zbg.src = ''; redraw(); return; }
+            zoneCamId = id;
+            shapes.zone_queue = []; shapes.zone_service = []; shapes.counter_line = []; shapes.exit_line = [];
+            currentPoly = []; drawMode = null;
+            zbg.src = '/video_feed/' + id;
+            document.getElementById('hint').textContent = '✓ Camera loaded — click ▦ Queue Zone to start drawing';
+            updateDots();
+            // Load existing saved config
+            Promise.all([
+                api('/api/cameras/' + id + '/zones').catch(() => null),
+                api('/api/cameras/' + id + '/lines').catch(() => null),
+            ]).then(([z, l]) => {
+                if (z) {
+                    if (z.zone_queue?.length) shapes.zone_queue = z.zone_queue;
+                    if (z.zone_service?.length) shapes.zone_service = z.zone_service;
+                    if (z.alert_threshold) document.getElementById('z-at').value = z.alert_threshold;
+                    if (z.wait_time_threshold) document.getElementById('z-wt').value = z.wait_time_threshold;
+                }
+                if (l) {
+                    if (l.counter_line?.length) shapes.counter_line = l.counter_line;
+                    if (l.exit_line?.length) shapes.exit_line = l.exit_line;
+                }
+                // Show running badge if already active
+                const cam = cameras[id];
+                document.getElementById('z-running').style.display = cam?.inference_active ? 'block' : 'none';
+                syncSize(); redraw(); updateDots();
+            });
+        }
+
+        function setMode(mode) {
+            if (!zoneCamId) { toast('Select a camera first!', true); return; }
+            drawMode = mode; currentPoly = [];
+            document.querySelectorAll('.zb').forEach(b => b.classList.remove('on'));
+            const map = { zone_queue: 'zb-q', zone_service: 'zb-s', counter_line: 'zb-cl', exit_line: 'zb-el' };
+            document.getElementById(map[mode])?.classList.add('on');
+            const isLine = mode === 'counter_line' || mode === 'exit_line';
+            document.getElementById('hint').textContent = isLine
+                ? `Drawing ${mode.replace('_', ' ').toUpperCase()} — click 2 points (auto-saves on 2nd click)`
+                : `Drawing ${mode.replace('_', ' ').toUpperCase()} — click points, then click ✔ Save Zone`;
+            redraw();
+        }
+
+        function saveShape() {
+            if (!drawMode) { toast('Select a draw mode first', true); return; }
+            const isLine = drawMode === 'counter_line' || drawMode === 'exit_line';
+            if (isLine) {
+                if (currentPoly.length < 2) { toast('Click 2 points to define the line', true); return; }
+                shapes[drawMode] = [currentPoly[0], currentPoly[1]];
+            } else {
+                if (currentPoly.length < 3) { toast('Need at least 3 points for a zone', true); return; }
+                shapes[drawMode] = currentPoly.slice();
+            }
+            const n = drawMode.replace('_', ' ');
+            toast('✓ ' + n + ' saved — select next element or click Apply');
+            currentPoly = []; drawMode = null;
+            document.querySelectorAll('.zb').forEach(b => b.classList.remove('on'));
+            document.getElementById('hint').textContent = n + ' saved — select next element or ▶ Apply';
+            updateDots(); redraw();
+        }
+
+        async function clearAll() {
+            shapes.zone_queue = []; shapes.zone_service = []; shapes.counter_line = []; shapes.exit_line = [];
+            currentPoly = []; drawMode = null;
+            document.querySelectorAll('.zb').forEach(b => b.classList.remove('on'));
+            document.getElementById('hint').textContent = 'Cleared — redraw as needed';
+            document.getElementById('z-running').style.display = 'none';
+            updateDots(); redraw();
+            if (zoneCamId) { try { await api('/api/cameras/' + zoneCamId + '/zones', 'DELETE'); } catch (_) { } }
+        }
+
+        canvas.addEventListener('click', e => {
+            if (!drawMode || !zoneCamId) { toast('Select camera and draw mode first', true); return; }
+            const r = canvas.getBoundingClientRect();
+            // Map click position to canvas pixel coords, then to image-relative [0..1]
+            const canvasX = (e.clientX - r.left) / r.width * canvas.width;
+            const canvasY = (e.clientY - r.top) / r.height * canvas.height;
+            const ir = getImageRect();
+            const px = (canvasX - ir.ox) / ir.rw;
+            const py = (canvasY - ir.oy) / ir.rh;
+            // Ignore clicks outside the actual video area
+            if (px < 0 || px > 1 || py < 0 || py > 1) { toast('Click inside the video area', true); return; }
+            const isLine = drawMode === 'counter_line' || drawMode === 'exit_line';
+            if (isLine) {
+                if (currentPoly.length === 0) {
+                    currentPoly = [[px, py]];
+                    document.getElementById('hint').textContent = '1st point set — click 2nd point to complete line';
+                } else {
+                    currentPoly = [currentPoly[0], [px, py]];
+                    saveShape(); // auto-save on 2nd click
+                }
+            } else {
+                currentPoly.push([px, py]);
+                document.getElementById('hint').textContent =
+                    currentPoly.length + ' point' + (currentPoly.length > 1 ? 's' : '') + ' — continue clicking or ✔ Save Zone';
+            }
+            redraw();
+        });
+
+        function updateDots() {
+            const map = { zone_queue: 'zd-q', zone_service: 'zd-s', counter_line: 'zd-cl', exit_line: 'zd-el' };
+            Object.entries(map).forEach(([k, id]) => {
+                const d = document.getElementById(id);
+                if (d) d.className = 'zsd' + (shapes[k]?.length ? ' ok' : '');
+            });
+        }
+
+        // Helper: map normalised [0..1] video coords → canvas pixel coords
+        function v2c(nx, ny) {
+            const ir = getImageRect();
+            return [ir.ox + nx * ir.rw, ir.oy + ny * ir.rh];
+        }
+
+        function redraw() {
+            syncSize();
+            const W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+            if (!zoneCamId) {
+                ctx.fillStyle = 'rgba(100,116,139,.45)'; ctx.font = '13px Inter,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText('Select a camera to begin', W / 2, H / 2); ctx.textAlign = 'left'; return;
+            }
+            // Saved polygons — mapped through image rect
+            for (const [key, color] of [['zone_queue', '#f59e0b'], ['zone_service', '#10b981']]) {
+                const p = shapes[key]; if (!p || p.length < 2) continue;
+                ctx.beginPath(); p.forEach(([x, y], i) => { const [cx, cy] = v2c(x, y); i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy); });
+                ctx.closePath();
+                ctx.fillStyle = color + '38'; ctx.fill();
+                ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.setLineDash([]); ctx.stroke();
+                const [lcx, lcy] = v2c(p.reduce((s, pt) => s + pt[0], 0) / p.length, p.reduce((s, pt) => s + pt[1], 0) / p.length);
+                ctx.shadowColor = '#0008'; ctx.shadowBlur = 5;
+                ctx.fillStyle = color; ctx.font = 'bold 12px Inter,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(key === 'zone_queue' ? 'QUEUE' : 'SERVICE', lcx, lcy + 4);
+                ctx.textAlign = 'left'; ctx.shadowBlur = 0;
+                p.forEach(([x, y]) => { const [cx, cy] = v2c(x, y); ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); });
+            }
+            // Saved lines — mapped through image rect
+            for (const [key, color, label] of [['counter_line', '#06b6d4', 'COUNTER'], ['exit_line', '#a78bfa', 'EXIT']]) {
+                const ln = shapes[key]; if (!ln || ln.length < 2) continue;
+                const [x1, y1] = v2c(ln[0][0], ln[0][1]), [x2, y2] = v2c(ln[1][0], ln[1][1]);
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+                ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.setLineDash([]); ctx.stroke();
+                const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+                ctx.beginPath(); ctx.arc(mx, my, 7, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+                ctx.shadowColor = '#000b'; ctx.shadowBlur = 5;
+                ctx.fillStyle = color; ctx.font = 'bold 11px Inter,sans-serif'; ctx.textAlign = 'center';
+                ctx.fillText(label + ' LINE', mx, my - 11); ctx.shadowBlur = 0; ctx.textAlign = 'left';
+                [[x1, y1], [x2, y2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); });
+            }
+            // In-progress drawing — mapped through image rect
+            if (currentPoly.length && drawMode) {
+                const color = COLORS[drawMode] || '#fff', isLine = drawMode === 'counter_line' || drawMode === 'exit_line';
+                ctx.beginPath(); currentPoly.forEach(([x, y], i) => { const [cx, cy] = v2c(x, y); i === 0 ? ctx.moveTo(cx, cy) : ctx.lineTo(cx, cy); });
+                if (!isLine && currentPoly.length >= 3) ctx.closePath();
+                ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.setLineDash([5, 3]); ctx.stroke(); ctx.setLineDash([]);
+                currentPoly.forEach(([x, y]) => { const [cx, cy] = v2c(x, y); ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); });
+                ctx.shadowColor = '#000a'; ctx.shadowBlur = 5;
+                const [tx, ty] = v2c(currentPoly[0][0], currentPoly[0][1]);
+                ctx.fillStyle = color; ctx.font = '11px Inter,sans-serif';
+                ctx.fillText(isLine ? currentPoly.length + '/2 pts' : currentPoly.length + ' pts — ✔ Save Zone',
+                    tx + 8, ty - 8);
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        async function applyZones() {
+            if (!zoneCamId) { toast('Select a camera first!', true); return; }
+            if (!shapes.zone_queue.length || !shapes.zone_service.length) {
+                toast('Draw Queue Zone AND Service Zone first, then Save each one', true); return;
+            }
+            const at = parseInt(document.getElementById('z-at').value) || 10;
+            const wt = parseFloat(document.getElementById('z-wt').value) || 300;
+            try {
+                await api('/api/cameras/' + zoneCamId + '/zones', 'POST', {
+                    zone_queue: shapes.zone_queue,
+                    zone_service: shapes.zone_service,
+                    zone_exit: [],
+                    counter_line: shapes.counter_line,
+                    exit_line: shapes.exit_line,
+                    alert_threshold: at, wait_time_threshold: wt,
+                });
+                toast('✓ Analytics started for Camera ' + zoneCamId);
+                if (cameras[zoneCamId]) cameras[zoneCamId].inference_active = true;
+                document.getElementById('z-running').style.display = 'block';
+                renderList();
+            } catch (e) { toast('Error: ' + e.message, true); }
+        }
+
+        async function resetCam() {
+            if (!zoneCamId) return;
+            await api('/api/cameras/' + zoneCamId + '/reset', 'POST');
+            document.getElementById('z-running').style.display = 'none';
+            toast('Analytics reset');
+        }
+
+        // ── Metrics ───────────────────────────────────────────────────────────────
+        async function refMetrics() {
+            const id = document.getElementById('msel').value; if (!id) return;
+            try {
+                const m = await api('/api/cameras/' + id + '/status');
+                document.getElementById('m-ql').textContent = m.queue_length ?? '—';
+                const wtEl = document.getElementById('m-wt2');
+                if (m.wait_method === 'no_data' || m.wait_method === 'none' || m.wait_method === 'warming_up' || !m.wait_method) {
+                    wtEl.textContent = '—';
+                } else { wtEl.textContent = (m.avg_waiting_time ?? 0).toFixed(1) + 's'; }
+                const ptEl = document.getElementById('m-pt');
+                if (m.proc_method === 'no_data' || m.proc_method === 'none' || m.proc_method === 'warming_up' || !m.proc_method) {
+                    ptEl.textContent = '—';
+                } else { ptEl.textContent = (m.avg_processing_time ?? 0).toFixed(1) + 's'; }
+                document.getElementById('m-zq').textContent = m.zone_counts?.queue ?? m.queue_length ?? '—';
+                document.getElementById('m-zs').textContent = m.zone_counts?.service ?? '—';
+                const qIn = m.queue_entries ?? m.entry_crossings ?? '—';
+                const qOut = m.queue_exits ?? m.counter_crossings ?? '—';
+                document.getElementById('m-cc').textContent = `${qIn} in / ${qOut} out`;
+                document.getElementById('m-ec').textContent = m.service_exits ?? m.exit_crossings ?? '—';
+                document.getElementById('m-tp').textContent = (m.throughput_per_hour ?? 0).toFixed(0) + '/h';
+                document.getElementById('m-ts').textContent = 'λ_service=' + (m.lambda_service_pm ?? m.lambda_exit_pm ?? 0).toFixed(3) + '/min × 60';
+                // Open counter card
+                const ocCard = document.getElementById('m-oc-card');
+                const ocEl = document.getElementById('m-oc');
+                const ocSub = document.getElementById('m-oc-sub');
+                if (m.open_counter) {
+                    ocCard.style.borderColor = 'var(--amber)';
+                    ocEl.style.color = 'var(--amber)'; ocEl.textContent = '⚠ Open Counter';
+                    ocSub.textContent = `Q=${m.queue_length}  wait=${(m.avg_waiting_time ?? 0).toFixed(0)}s  exits=0`;
+                } else {
+                    ocCard.style.borderColor = 'var(--muted)33';
+                    ocEl.style.color = 'var(--muted)'; ocEl.textContent = '✓ OK';
+                    ocSub.textContent = 'wait > threshold AND exits = 0';
+                }
+                // Wait method tag
+                const wm = document.getElementById('m-wm');
+                if (m.wait_method === 'littles_law') { wm.textContent = 'L'; wm.className = 'mt ll'; }
+                else if (m.wait_method === 'estimated') { wm.textContent = '~'; wm.className = 'mt est'; }
+                else if (m.wait_method === 'no_data') { wm.textContent = '?'; wm.className = 'mt no'; }
+                else { wm.textContent = '—'; wm.className = 'mt no'; }
+                const lq = m.lambda_q_pm ?? m.lambda_counter_pm ?? 0;
+                document.getElementById('m-ws').textContent = lq > 0
+                    ? `L_avg=${m.L_queue_avg}  ÷  λ_exits=${(m.lambda_exit_pm ?? 0).toFixed(3)}/min  (entries=${(m.lambda_entry_pm ?? 0).toFixed(3)}/min)`
+                    : m.queue_length > 0 ? 'Queue active — waiting for first zone exit or entry…' : 'Queue empty';
+                const pm = document.getElementById('m-pm');
+                if (m.proc_method === 'littles_law') { pm.textContent = 'L'; pm.className = 'mt ll'; }
+                else if (m.proc_method === 'estimated') { pm.textContent = '~'; pm.className = 'mt est'; }
+                else { pm.textContent = '—'; pm.className = 'mt no'; }
+                document.getElementById('m-ps').textContent = (m.lambda_service_pm ?? m.lambda_exit_pm ?? 0) > 0
+                    ? `L_svc=${m.L_service_avg}  ÷  λ_svc=${(m.lambda_service_pm ?? m.lambda_exit_pm ?? 0).toFixed(3)}/min`
+                    : 'Waiting for service exits…';
+                const log = (m.crossing_log || []).slice().reverse();
+                document.getElementById('clog').innerHTML = log.length
+                    ? log.map(e => {
+                        const t = e.type;
+                        const label = (t === 'exit' || t === 'queue_exit' || t === 'counter')
+                            ? '<span class="bctr">Queue exit</span>'
+                            : (t === 'entry' || t === 'queue_entry')
+                                ? '<span style="color:var(--green);font-size:.68rem">Queue entry</span>'
+                                : (t === 'service_exit')
+                                    ? '<span class="bext">Service exit</span>'
+                                    : `<span style="color:var(--muted);font-size:.68rem">${t}</span>`;
+                        return `<tr><td>${e.time}</td><td>${label}</td><td style="color:var(--muted);font-size:.62rem">zone-count change</td></tr>`;
+                    }).join('')
+                    : '<tr><td colspan="3" style="color:var(--muted);padding:9px 6px">No crossings yet</td></tr>';
+                // History chart
+                const h = await api('/api/cameras/' + id + '/history');
+                drawChart(h);
+            } catch (_) { }
+        }
+
+        function drawChart(hist) {
+            const cv = document.getElementById('hcv'), c = cv.getContext('2d');
+            cv.width = (cv.offsetWidth || 700) * devicePixelRatio; cv.height = 140 * devicePixelRatio;
+            c.clearRect(0, 0, cv.width, cv.height);
+            if (!hist?.length) return;
+            const data = hist.slice(-300);
+            const qlV = data.map(h => h.queue_length || 0), wtV = data.map(h => h.avg_wait || 0), ptV = data.map(h => h.avg_proc || 0);
+            const maxV = Math.max(...qlV, ...wtV, ...ptV, 1), n = data.length, pw = cv.width / Math.max(n - 1, 1), H = cv.height - 16;
+            function dl(vals, color, a) {
+                c.beginPath(); c.strokeStyle = color; c.lineWidth = 2 * devicePixelRatio; c.globalAlpha = a;
+                vals.forEach((v, i) => { const x = i * pw, y = 8 + H - (v / maxV) * H; i === 0 ? c.moveTo(x, y) : c.lineTo(x, y); });
+                c.stroke();
+                const g = c.createLinearGradient(0, 0, 0, cv.height); g.addColorStop(0, color + '44'); g.addColorStop(1, color + '00');
+                c.lineTo((n - 1) * pw, cv.height); c.lineTo(0, cv.height); c.closePath(); c.fillStyle = g; c.fill(); c.globalAlpha = 1;
+            }
+            dl(ptV, '#10b981', .7); dl(wtV, '#3b82f6', .85); dl(qlV, '#f59e0b', 1);
+        }
+
+        async function exportCSV() {
+            const id = document.getElementById('msel').value; if (!id) { toast('Select camera', true); return; }
+            try {
+                const r = await fetch('/api/cameras/' + id + '/history/export');
+                const blob = await r.blob(), url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const cd = r.headers.get('Content-Disposition') || '';
+                a.href = url; a.download = cd.match(/filename=([^\s;]+)/)?.[1] || 'history.csv'; a.click();
+                URL.revokeObjectURL(url); toast('✓ CSV exported');
+            } catch (e) { toast('Export error', true); }
+        }
+
+        // ── Overview ──────────────────────────────────────────────────────────────
+        async function refOv() {
+            try {
+                const ov = await api('/api/overview');
+                document.getElementById('ov-q').textContent = ov.total_queue;
+                document.getElementById('ov-p').textContent = ov.total_processed;
+                document.getElementById('ov-c').textContent = ov.total_cameras;
+                const g = document.getElementById('cbg');
+                if (!ov.cameras?.length) { g.innerHTML = '<p style="color:var(--muted);font-size:.74rem">No cameras.</p>'; return; }
+                g.innerHTML = ov.cameras.map(cam => {
+                    const ha = cam.unacked_alerts > 0;
+                    const oc = cam.open_counter || false;
+                    const wm = cam.avg_waiting_time_method || cam.wait_method || 'none';
+                    const wtLabel = wm === 'littles_law' ? '[L]' : wm === 'estimated' ? '[~]' : wm === 'no_data' ? '[?]' : '';
+                    const wtDisplay = (wm === 'none' || wm === 'no_data' || !wm) ? '—' : (cam.avg_waiting_time ?? 0).toFixed(1) + 's';
+                    const qIn = cam.queue_entries ?? cam.entry_crossings ?? '—';
+                    const qOut = cam.queue_exits ?? cam.counter_crossings ?? '—';
+                    const sOut = cam.service_exits ?? cam.exit_crossings ?? '—';
+                    return `<div class="cb ${ha ? 'alrt' : ''} ${oc ? 'oc' : ''}">
+        <div class="cbh">${cam.name}
+          <span style="margin-left:auto;display:flex;gap:5px;font-weight:400;font-size:.65rem">
+            <span style="color:${cam.inference_active ? 'var(--green)' : 'var(--muted)'}">${cam.inference_active ? '⬤ Active' : '◎ Idle'}</span>
+            ${ha ? `<span style="color:var(--red)">⚠ ${cam.unacked_alerts}</span>` : ''}
+          </span>
+        </div>
+        ${oc ? `<div class="oc-banner">⚠ Consider opening a new counter — exits stalled</div>` : ''}
+        <div class="cbr"><span class="cl">Queue Length</span><span class="cv ca">${cam.queue_length}</span></div>
+        <div class="cbr"><span class="cl">Avg Wait ${wtLabel}</span><span class="cv ca">${wtDisplay}</span></div>
+        <div class="cbr"><span class="cl">Avg Proc</span><span class="cv cg">${(cam.avg_processing_time ?? 0).toFixed(1)}s</span></div>
+        <div class="cbr"><span class="cl">Throughput</span><span class="cv cp">${(cam.throughput_per_hour ?? 0).toFixed(0)}/h</span></div>
+        <div class="cbr"><span class="cl">Queue In / Out / Svc</span><span class="cv cc2">${qIn} / ${qOut} / ${sOut}</span></div>
+        <div class="cbr"><span class="cl">Decode</span><span class="cv" style="color:var(--muted)">${(cam.decode_method || 'cpu').toUpperCase()}</span></div>
+      </div>`;
+                }).join('');
+                const ua = ov.total_unacked_alerts || 0;
+                document.getElementById('sy-alrt').textContent = ua > 0 ? `⚠ ${ua} alert${ua > 1 ? 's' : ''}` : '';
+            } catch (_) { }
+        }
+
+        // ── Alerts ────────────────────────────────────────────────────────────────
+        async function refAlerts() {
+            const id = document.getElementById('asel').value;
+            const el = document.getElementById('alist');
+            if (!id) { el.innerHTML = '<p style="color:var(--muted);font-size:.74rem">Select a camera.</p>'; return; }
+            try {
+                let alerts = await api('/api/cameras/' + id + '/alerts');
+                if (document.getElementById('f-ua').checked) alerts = alerts.filter(a => !a.acked);
+                if (!alerts.length) { el.innerHTML = '<p style="color:var(--muted);font-size:.74rem">No alerts.</p>'; return; }
+                el.innerHTML = '<div class="al">' + [...alerts].reverse().map(a =>
+                    `<div class="ai ${a.level === 'critical' ? 'cr' : ''} ${a.acked ? 'ak' : ''}">
+        <div class="at">${a.time}</div>
+        <div class="am">${a.message}<br><span style="font-size:.6rem;color:var(--muted)">Q=${a.queue_length} · wait=${a.avg_wait}s</span></div>
+        <div class="alv">${a.acked ? 'ACK' : (a.level || 'warn').toUpperCase()}</div>
+        ${!a.acked ? `<button class="btn sm sec" onclick="ackAlert(${id},${a.idx})">✓ Ack</button>` : ''}
+      </div>`).join('') + '</div>';
+            } catch (_) { }
+        }
+
+        async function ackAlert(cid, idx) {
+            try { await api('/api/cameras/' + cid + '/alerts/' + idx + '/ack', 'POST'); toast('Acknowledged'); refAlerts(); refOv(); }
+            catch (e) { toast('Ack failed', true); }
+        }
+
+        // ── System poll ───────────────────────────────────────────────────────────
+        async function pollSys() {
+            try {
+                const s = await api('/api/system');
+                document.getElementById('sy-dev').textContent = 'Device: ' + s.npu.device;
+                document.getElementById('sy-inf').textContent = 'Inf: ' + s.npu.avg_inf_ms + 'ms';
+                document.getElementById('sy-cams').textContent = s.cameras + ' cam' + (s.cameras !== 1 ? 's' : '');
+                const gd = s.gpu_decode || {}, g = document.getElementById('sy-gpu');
+                if (gd.gst_vaapi) { g.textContent = '🎬 GST-VAAPI'; g.style.color = 'var(--green)'; }
+                else if (gd.gst_qsv) { g.textContent = '🎬 GST-QSV'; g.style.color = 'var(--green)'; }
+                else if (gd.gst) { g.textContent = '🎬 GST-AUTO'; g.style.color = 'var(--green)'; }
+                else if (gd.vaapi) { g.textContent = '🎬 VAAPI'; g.style.color = 'var(--amber)'; }
+                else { g.textContent = '🎬 CPU'; g.style.color = 'var(--red)'; }
+            } catch (_) { }
+        }
+
+        // ── Camera metrics poll ───────────────────────────────────────────────────
+        async function pollCams() {
+            try {
+                const list = await api('/api/cameras');
+                list.forEach(c => { cameras[c.cam_id] = cameras[c.cam_id] || {}; Object.assign(cameras[c.cam_id], c); });
+                for (const c of list) {
+                    try {
+                        const m = await api('/api/cameras/' + c.cam_id + '/status');
+                        cameras[c.cam_id].metrics = m;
+                        cameras[c.cam_id].inference_active = m.inference_active || false;
+                        cameras[c.cam_id].inf_fps = m.inf_fps || 0;
+                        cameras[c.cam_id].decode_method = m.decode_method || 'cpu';
+                        // Update live feed badges
+                        const vb = document.getElementById('vb-' + c.cam_id);
+                        if (vb) {
+                            const zc = m.zone_counts || {};
+                            const qIn = m.queue_entries ?? m.entry_crossings ?? 0;
+                            const qOut = m.queue_exits ?? m.counter_crossings ?? 0;
+                            const sOut = m.service_exits ?? m.exit_crossings ?? 0;
+                            const wt = (m.wait_method === 'no_data' || m.wait_method === 'none' || !m.wait_method)
+                                ? '—' : (m.avg_waiting_time ?? 0).toFixed(0) + 's';
+                            const oc = m.open_counter;
+                            vb.innerHTML =
+                                `<span class="bs bq">Q:${zc.queue ?? m.queue_length ?? 0}</span>` +
+                                `<span class="bs bs2">S:${zc.service ?? 0}</span>` +
+                                `<span class="bs bc">In:${qIn} Out:${qOut}</span>` +
+                                `<span class="bs" style="color:var(--cyan)">Svc:${sOut}</span>` +
+                                `<span class="bs" style="color:var(--accent)">W:${wt}</span>` +
+                                (oc ? '<span class="bs" style="background:#451a03;color:#fcd34d;border:1px solid #f59e0b44">⚠ Open Counter</span>' : '') +
+                                (m.alerts?.length ? '<span class="bs" style="background:#7f1d1d;color:#fca5a5">⚠ Alert</span>' : '');
+                        }
+                        if (!document.getElementById('vc-' + c.cam_id)) addVCard(c);
+                        // Update running badge in zone setup
+                        if (zoneCamId === c.cam_id) {
+                            document.getElementById('z-running').style.display = m.inference_active ? 'block' : 'none';
+                        }
+                    } catch (_) { }
+                }
+                renderList();
+                // Cleanup removed cameras
+                const live = new Set(list.map(c => String(c.cam_id)));
+                Object.keys(cameras).forEach(id => { if (!live.has(id)) delete cameras[id]; });
+                updateSelects();
+                // Refresh active tab
+                const at = document.querySelector('.tab.on')?.textContent?.trim();
+                if (at === 'Metrics') refMetrics();
+                if (at === 'Overview') refOv();
+                if (at === 'Alerts') refAlerts();
+            } catch (_) { }
+        }
+
+        // ── Init ──────────────────────────────────────────────────────────────────
+        window.addEventListener('DOMContentLoaded', async () => {
+            syncSize(); redraw();
+            await pollCams(); updateSelects();
+            setInterval(pollSys, 3000);
+            setInterval(pollCams, 2000);
+            pollSys();
+        });
+    </script>
+</body>
+
+</html>
